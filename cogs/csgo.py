@@ -395,6 +395,7 @@ class CSGO(commands.Cog):
 
         await ctx.send('If you are coaching, once you join the server, type .coach')
         loading_map_message = await ctx.send('Server is being configured')
+        #Beginning of server requests
         await asyncio.sleep(0.3)
         get5_trigger = valve.rcon.execute((csgo_server.server_address, csgo_server.server_port),
                                           csgo_server.RCON_password,

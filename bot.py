@@ -10,7 +10,7 @@ from utils.server import WebServer
 from utils.csgo_server import CSGOServer
 
 __version__ = '1.7.1'
-__dev__ = 745000319942918303
+__dev__ = 1000071418094039140
 
 
 class Discord_10man(commands.Bot):
@@ -68,7 +68,6 @@ class Discord_10man(commands.Bot):
         await self.change_presence(status=discord.Status.online,
                                    activity=discord.Activity(type=discord.ActivityType.competing,
                                                              name='CSGO Pugs'))
-
         self.dev = self.user.id == __dev__
         self.logger.debug(f'Dev = {self.dev}')
 
