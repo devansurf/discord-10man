@@ -36,6 +36,7 @@ class Discord_10man(commands.Bot):
             self.bot_port: int = 3000
         self.steam_web_api_key = config['steam_web_API_key']
         self.servers: List[CSGOServer] = []
+        self.image_channel_id = config['image_storage_id']
         # Will need to change for when there is multiple server queue
         self.users_not_ready: List[discord.Member] = []
         for i, server in enumerate(config['servers']):
