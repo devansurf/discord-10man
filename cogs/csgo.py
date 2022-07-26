@@ -53,13 +53,18 @@ class CSGO(commands.Cog):
         self.readied_up: bool = False
 
     @commands.command(hidden=True)
+    async def dathost(self, ctx: commands.Context, *args):
+        csgo_server = self.bot.servers[0]
+        csgo_server.start_match({})
+
+    @commands.command(hidden=True)
     async def test(self, ctx: commands.Context, *args):
         self.logger.debug(f'{ctx.author}: {ctx.prefix}{ctx.invoked_with} {ctx.args[2:]}')
         print(f'test')
 
     @commands.command(aliases=['10man', 'setup'],
                       help='This command takes the users in a voice channel and selects two random '
-                           'captains. It then allows those captains to select the members of their '
+                           'captains.get5 It then allows those captains to select the members of their '
                            'team in a 1 2 2 2 1 fashion. It then configures the server with the '
                            'correct config.', brief='Helps automate setting up a PUG')
     @commands.check(checks.voice_channel)
@@ -381,10 +386,6 @@ class CSGO(commands.Cog):
                 'tag': 'team2',
                 'flag': team2_country,
                 'players': team2_steamIDs
-            },
-            'cvars': {
-                'get5_event_api_url': f'http://{bot_ip}:{self.bot.web_server.port}/',
-                'get5_print_damage': '1',
             }
         }
 
@@ -399,6 +400,7 @@ class CSGO(commands.Cog):
         # get5_trigger = valve.rcon.execute((csgo_server.server_address, csgo_server.server_port),
         #                                   csgo_server.RCON_password,
         #                                   'exec triggers/get5')
+        csgo_server.start_match(match_config)
         # self.logger.debug(f'Executing get5_trigger (something for Yannicks Server) \n {get5_trigger}')
         # await asyncio.sleep(10)
         #DATHOST
@@ -407,7 +409,7 @@ class CSGO(commands.Cog):
         #                                 csgo_server.RCON_password,
         #                                 f'get5_loadmatch_url "{bot_ip}:{self.bot.web_server.port}/{match_id}"')
         # self.logger.debug(f'Load Match via URL\n {load_match}')
-        # await asyncio.sleep(5)
+        await asyncio.sleep(5)
         connect_embed = await self.connect_embed(csgo_server)
         if self.bot.connect_dm:
             for player in team1 + team2 + self.bot.spectators:

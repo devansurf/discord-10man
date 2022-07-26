@@ -39,10 +39,25 @@ class Discord_10man(commands.Bot):
         self.image_channel_id = config['image_storage_id']
         # Will need to change for when there is multiple server queue
         self.users_not_ready: List[discord.Member] = []
+
+        match_settings = {
+            "connect_time": config['connect_time'],
+            "enable_knife_round": config['enable_knife_round'],
+            "enable_pause": config['enable_pause'],
+            # "enable_playwin": config['enable_playwin'],
+            # "enable_ready": config['enable_ready'],
+            "enable_tech_pause": config['enable_tech_pause'],
+            "ready_min_players": config['ready_min_players'],
+            "team_size": config['team_size'],
+            "wait_for_coaches": config['wait_for_coaches'],
+            "wait_for_gotv_before_nextmap": config['wait_for_gotv_before_nextmap'],
+            "wait_for_spectators": config['wait_for_spectators'],
+            "warmup_time": config['warmup_time']
+        }
         for i, server in enumerate(config['servers']):
             self.servers.append(
                 CSGOServer(i, server['server_address'], server['server_port'], server['server_password'],
-                           server['RCON_password']))
+                           server['RCON_password'], server["server_id"],config["email"], config["password"], match_settings))
         self.web_server = WebServer(bot=self)
         self.dev: bool = False
         self.version: str = __version__
