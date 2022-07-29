@@ -1,3 +1,4 @@
+from email.mime import base
 import discord
 import logging
 import valve.rcon
@@ -19,6 +20,8 @@ class CSGOServer:
         self.server_address: str = server_address
         self.server_port: int = server_port
         self.server_id: str = server_id
+        self.json_id: str = None
+        self.match_id: str = None
         self.server_password: str = server_password
         self.RCON_password: str = RCON_password
         self.available: bool = True
@@ -46,17 +49,21 @@ class CSGOServer:
     def get_auth_header(self):
         return (self.DH_email, self.DH_password)
     
-    def get_account(self): 
-        r = requests.get('https://dathost.net/api/0.1/account', auth=self.get_auth_header())
-        self.logger.debug(f'Request to get account returned code {r.status_code}')
-
     def format_players(self, player_dict):  
         formatted = ','.join(list(player_dict.keys()))
         return formatted.replace('_0', '_1')
 
-    def start_match(self, match_config: Dict):
+    def get_match_info(self):
+        if self.match_id != None:
+            response = requests.get(f'https://dathost.net/api/0.1/matches/{self.match_id}', auth= self.get_auth_header())
+            self.logger.debug(f'Request to get match info returned code {response.status_code}')
+            return response
+            
+    def start_match(self, match_config: Dict, base_url: str):
         #format match_config for datahost
-        print(list(match_config['team1']['players'].keys()))
+        base_url = 'http://06a1-67-206-202-167.ngrok.io'
+        self.match_settings['webhook_authorization_header'] = self.get_auth_header()
+
         self.match_settings['game_server_id'] = self.server_id
         self.match_settings['map'] = match_config['maplist'][0]
 
@@ -70,8 +77,14 @@ class CSGOServer:
 
         self.match_settings['spectators_steam_ids'] = self.format_players(match_config['spectators']['players'])
 
+        #webhooks
+        self.match_settings['match_end_webhook_url'] = f'{base_url}/match_end'
+        self.match_settings['round_end_webhook_url'] = f'{base_url}/round_end'
+        
         response = requests.post('https://dathost.net/api/0.1/matches',data=self.match_settings,auth=self.get_auth_header())
         self.logger.debug(f'POST request to start match returned code {response.status_code}')
+        self.json_id = match_config['json_id']
+        self.match_id = response.json()['id']
 
     def set_map(self, csgo_map: str):
         r = requests.put(f'https://dathost.net/api/0.1/game-servers/{self.server_id}', data={'csgo_settings.mapgroup_start_map':csgo_map},
@@ -97,15 +110,15 @@ class CSGOServer:
         self.logger.info(f'ServerID:{self.id} is available')
 
     def get_gotv(self) -> int:
-        if self.gotv is None:
-            tv_port: str = valve.rcon.execute((self.server_address, self.server_port), self.RCON_password, 'tv_port')
-            self.logger.debug(tv_port)
-            try:
-                self.gotv = tv_port[CSGOServer.findNthOccur(tv_port, '"', 3) + 1:CSGOServer.findNthOccur(tv_port, '"', 4)]
-            except ValueError or valve.rcon.RCONMessageError:
-                self.gotv = None
+        # if self.gotv is None:
+        #     tv_port: str = valve.rcon.execute((self.server_address, self.server_port), self.RCON_password, 'tv_port')
+        #     self.logger.debug(tv_port)
+        #     try:
+        #         self.gotv = tv_port[CSGOServer.findNthOccur(tv_port, '"', 3) + 1:CSGOServer.findNthOccur(tv_port, '"', 4)]
+        #     except ValueError or valve.rcon.RCONMessageError:
+        #         self.gotv = None
 
-        self.logger.info(f'ServerID={self.id} GoTV={self.gotv}')
+        # self.logger.info(f'ServerID={self.id} GoTV={self.gotv}')
         return self.gotv
 
     @staticmethod

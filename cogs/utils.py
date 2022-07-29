@@ -89,6 +89,7 @@ class Utils(commands.Cog):
                 await owner.send(embed=embed)
         await session.close()
 
+
     @commands.command(aliases=['version', 'v', 'a'], help='This command gets the bot information and version')
     async def about(self, ctx: commands.Context):
         self.logger.debug(f'{ctx.author}: {ctx.prefix}{ctx.invoked_with} {ctx.args[2:]}')

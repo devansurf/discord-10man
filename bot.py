@@ -44,15 +44,17 @@ class Discord_10man(commands.Bot):
             "connect_time": config['connect_time'],
             "enable_knife_round": config['enable_knife_round'],
             "enable_pause": config['enable_pause'],
-            # "enable_playwin": config['enable_playwin'],
-            # "enable_ready": config['enable_ready'],
+            "enable_playwin": config['enable_playwin'],
+            "enable_ready": config['enable_ready'],
             "enable_tech_pause": config['enable_tech_pause'],
             "ready_min_players": config['ready_min_players'],
             "team_size": config['team_size'],
             "wait_for_coaches": config['wait_for_coaches'],
             "wait_for_gotv_before_nextmap": config['wait_for_gotv_before_nextmap'],
             "wait_for_spectators": config['wait_for_spectators'],
-            "warmup_time": config['warmup_time']
+            "warmup_time": config['warmup_time'],
+            "message_prefix": config['match_bot_name']
+
         }
         for i, server in enumerate(config['servers']):
             self.servers.append(
@@ -64,6 +66,8 @@ class Discord_10man(commands.Bot):
         self.queue_ctx: commands.Context = None
         self.queue_voice_channel: discord.VoiceChannel = None
         self.match_size = 10
+        self.player_choose_time: int = config['player_choose_time']
+        self.map_choose_time: int= config['player_choose_time']
         self.spectators: List[discord.Member] = []
         self.connect_dm = False
         self.queue_captains: List[discord.Member] = []

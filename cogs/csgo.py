@@ -51,6 +51,7 @@ class CSGO(commands.Cog):
         self.bot: Discord_10man = bot
         self.veto_image = veto_image
         self.readied_up: bool = False
+        self.scanning: bool = False
 
     @commands.command(hidden=True)
     async def dathost(self, ctx: commands.Context, *args):
@@ -195,7 +196,7 @@ class CSGO(commands.Cog):
                 self.logger.debug(f'current_captain (captain currently selected) = {current_captain}')
 
                 message_text += f' select {player_veto[player_veto_count]}\n'
-                message_text += 'You have 60 seconds to choose your player(s)\n'
+                message_text += f'You have {self.bot.player_choose_time} seconds to choose your player(s)\n'
 
                 i = 0
                 for player in players:
@@ -233,7 +234,7 @@ class CSGO(commands.Cog):
 
                     seconds += 1
 
-                    if seconds % 60 == 0:
+                    if seconds % self.bot.player_choose_time == 0:
                         for _ in range(0, player_veto[player_veto_count]):
                             index = randint(0, len(players) - 1)
                             self.logger.debug(f'{current_captain} selected {players[index]}')
@@ -361,10 +362,10 @@ class CSGO(commands.Cog):
         team1_name = f'team_{unidecode(team1_captain.display_name)}'
         team2_name = f'team_{unidecode(team2_captain.display_name)}'
 
-        match_id = f'PUG_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}'
+        json_id = f'PUG_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}'
 
         match_config = {
-            'matchid': match_id,
+            'json_id': json_id,
             'num_maps': 1,
             'maplist': map_list,
             'skip_veto': True,
@@ -391,7 +392,7 @@ class CSGO(commands.Cog):
 
         self.logger.debug(f'Match Config =\n {pprint.pformat(match_config)}')
 
-        with open(f'./{match_id}.json', 'w') as outfile:
+        with open(f'./{json_id}.json', 'w') as outfile:
             json.dump(match_config, outfile, ensure_ascii=False, indent=4)
 
         loading_map_message = await ctx.send('Server is being configured')
@@ -400,10 +401,17 @@ class CSGO(commands.Cog):
         # get5_trigger = valve.rcon.execute((csgo_server.server_address, csgo_server.server_port),
         #                                   csgo_server.RCON_password,
         #                                   'exec triggers/get5')
-        csgo_server.start_match(match_config)
+        base_url = f'http://{bot_ip}:{self.bot.web_server.port}'
+
+         #add csgo server to web_server (fetching and posting)
+        self.bot.web_server.add_server(csgo_server)
+
+        #call dathost api to start match
+        csgo_server.start_match(match_config, base_url)
+
         # self.logger.debug(f'Executing get5_trigger (something for Yannicks Server) \n {get5_trigger}')
         # await asyncio.sleep(10)
-        #DATHOST
+    
         await loading_map_message.delete()
         # load_match = valve.rcon.execute((csgo_server.server_address, csgo_server.server_port),
         #                                 csgo_server.RCON_password,
@@ -428,8 +436,14 @@ class CSGO(commands.Cog):
         csgo_server.get_context(ctx=ctx, channels=[channel_original, team1_channel, team2_channel],
                                 players=team1 + team2, score_message=score_message)
         csgo_server.set_team_names([team1_name, team2_name])
-        self.bot.web_server.add_server(csgo_server)
 
+       
+
+        #begin scanning for servers
+        # if not self.scanning:
+        #     self.bot.web_server.fetch_servers.start()
+        #     self.scanning = True
+        #     self.logger.info('Began scanning for csgo servers')
         if not self.pug.enabled:
             self.queue_check.start()
             self.logger.info('Queue Starting Back')
@@ -511,7 +525,7 @@ class CSGO(commands.Cog):
 
         veto_image_fp = 'result.png'
         session = aiohttp.ClientSession()
-        #base_url = f'http://{self.bot.bot_IP}:{self.bot.web_server.port}'
+    
 
         async def get_embed(current_team_captain):
             ''' Returns :class:`discord.Embed` which contains the map veto
@@ -534,7 +548,7 @@ class CSGO(commands.Cog):
             attachment = temp_message.attachments[0]
 
             embed.set_image(url=attachment.url)
-            embed.set_footer(text=f'It is now {current_team_captain}\'s turn to veto | You have 60 seconds',
+            embed.set_footer(text=f'It is now {current_team_captain}\'s turn to veto | You have {self.bot.map_choose_time} seconds',
                              icon_url=current_team_captain.avatar_url)
             return embed
 
@@ -567,7 +581,7 @@ class CSGO(commands.Cog):
             check = lambda reaction, user: reaction.emoji in emoji_bank and user == current_team_captain
             index = -1
             try:
-                (reaction, _) = await self.bot.wait_for('reaction_add', check=check, timeout=60.0)
+                (reaction, _) = await self.bot.wait_for('reaction_add', check=check, timeout=self.bot.map_choose_time)
             except asyncio.TimeoutError:
                 validIndexes = [i for i in range(len(is_vetoed)) if not is_vetoed[i]]
                 index = choice(validIndexes)
