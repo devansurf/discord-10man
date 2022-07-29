@@ -54,9 +54,11 @@ class CSGO(commands.Cog):
         self.scanning: bool = False
 
     @commands.command(hidden=True)
-    async def dathost(self, ctx: commands.Context, *args):
-        csgo_server = self.bot.servers[0]
-        csgo_server.start_match({})
+    async def reload(self, ctx: commands.Context, *args):
+        config_file = open('config.json')
+        config = json.load(config_file)
+        config_file.close()
+        self.bot.loadConfig(config)
 
     @commands.command(hidden=True)
     async def test(self, ctx: commands.Context, *args):
@@ -124,7 +126,7 @@ class CSGO(commands.Cog):
         players: List[discord.Member] = ctx.author.voice.channel.members.copy()
         players = players[:self.bot.match_size]
         if self.bot.dev:
-            players = [ctx.author] * 10
+            players = [ctx.author] * self.bot.match_size
             self.logger.info('Filling list of players with the message author because bot is in dev mode')
 
         if random_teams:
@@ -431,7 +433,7 @@ class CSGO(commands.Cog):
         score_embed = discord.Embed()
         score_embed.add_field(name='0', value=team1_name, inline=True)
         score_embed.add_field(name='0', value=team2_name, inline=True)
-        score_message = await ctx.send('Match in Progress', embed=score_embed)
+        score_message = await ctx.send('Waiting for players', embed=score_embed)
 
         csgo_server.get_context(ctx=ctx, channels=[channel_original, team1_channel, team2_channel],
                                 players=team1 + team2, score_message=score_message)

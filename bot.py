@@ -35,8 +35,28 @@ class Discord_10man(commands.Bot):
         else:
             self.bot_port: int = 3000
         self.steam_web_api_key = config['steam_web_API_key']
-        self.servers: List[CSGOServer] = []
+ 
+        self.web_server = WebServer(bot=self)
+        self.dev: bool = False
+        self.version: str = __version__
+        self.queue_ctx: commands.Context = None
+        self.queue_voice_channel: discord.VoiceChannel = None
+       
+        self.spectators: List[discord.Member] = []
+        self.connect_dm = False
+        self.queue_captains: List[discord.Member] = []
+
+        self.loadConfig(config)
+        for extension in startup_extensions:
+            self.load_extension(f'cogs.{extension}')
+
+
+    def loadConfig(self, config):
+
         self.image_channel_id = config['image_storage_id']
+        self.match_size: int = config['match_size']
+        self.player_choose_time: int = config['player_choose_time']
+        self.map_choose_time: int= config['player_choose_time']
         # Will need to change for when there is multiple server queue
         self.users_not_ready: List[discord.Member] = []
 
@@ -54,26 +74,13 @@ class Discord_10man(commands.Bot):
             "wait_for_spectators": config['wait_for_spectators'],
             "warmup_time": config['warmup_time'],
             "message_prefix": config['match_bot_name']
-
         }
+        self.servers: List[CSGOServer] = []
+
         for i, server in enumerate(config['servers']):
             self.servers.append(
                 CSGOServer(i, server['server_address'], server['server_port'], server['server_password'],
                            server['RCON_password'], server["server_id"],config["email"], config["password"], match_settings))
-        self.web_server = WebServer(bot=self)
-        self.dev: bool = False
-        self.version: str = __version__
-        self.queue_ctx: commands.Context = None
-        self.queue_voice_channel: discord.VoiceChannel = None
-        self.match_size = 10
-        self.player_choose_time: int = config['player_choose_time']
-        self.map_choose_time: int= config['player_choose_time']
-        self.spectators: List[discord.Member] = []
-        self.connect_dm = False
-        self.queue_captains: List[discord.Member] = []
-
-        for extension in startup_extensions:
-            self.load_extension(f'cogs.{extension}')
 
     async def on_ready(self):
         db = Database('sqlite:///main.sqlite')
@@ -105,5 +112,6 @@ class Discord_10man(commands.Bot):
         await self.web_server.http_stop()
         await super().close()
 
+    
     def run(self):
         super().run(self.token, reconnect=True)

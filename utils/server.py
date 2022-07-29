@@ -113,11 +113,11 @@ class WebServer:
                 self.logger.debug(f'ServerID={server.id} ({request.remote})=\n {pprint.pformat(datahost_event)}')
                 print(request.path)
                 if request.path == '/match_end':
-
+                    
                     await server.score_message.edit(content='Game Over')
 
                     score_embed: discord.Embed = server.score_message.embeds[0]
-                    score_embed.set_footer(text='🟥 Ended')
+                    score_embed.set_footer(text= f'🟥 Ended : {datahost_event["cancel_reason"]}')
                     await server.score_message.edit(embed=score_embed)
 
                     if os.path.exists(f'./{server.json_id}.json'):
@@ -216,7 +216,6 @@ class WebServer:
         await self.site.stop()
 
     def add_server(self, csgo_server: CSGOServer):
-        print("added csgo server")
         self.csgo_servers.append(csgo_server)
 
     @staticmethod
