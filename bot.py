@@ -30,6 +30,8 @@ class Discord_10man(commands.Bot):
 
         self.token: str = config['discord_token']
         self.bot_IP: str = config['bot_IP']
+        self.linked_role = config['linked_role_name']
+
         if 'bot_port' in config:
             self.bot_port: int = config['bot_port']
         else:
@@ -37,7 +39,7 @@ class Discord_10man(commands.Bot):
         self.steam_web_api_key = config['steam_web_API_key']
  
         self.web_server = WebServer(bot=self)
-        self.dev: bool = False
+     
         self.version: str = __version__
         self.queue_ctx: commands.Context = None
         self.queue_voice_channel: discord.VoiceChannel = None
@@ -52,6 +54,8 @@ class Discord_10man(commands.Bot):
 
 
     def loadConfig(self, config):
+
+        self.dev: bool = config['devmode']
 
         self.image_channel_id = config['image_storage_id']
         self.match_size: int = config['match_size']
@@ -86,21 +90,37 @@ class Discord_10man(commands.Bot):
         db = Database('sqlite:///main.sqlite')
         await db.connect()
         await db.execute('''
-                    CREATE TABLE IF NOT EXISTS users(
-                        discord_id TEXT UNIQUE,
-                        steam_id TEXT
-                    )''')
-
+                   CREATE TABLE IF NOT EXISTS users(
+                    discord_id TEXT UNIQUE,
+                    steam_id TEXT
+ 			        )
+            ''')
+        await db.execute('''
+                    CREATE TABLE IF NOT EXISTS player_match_stats(
+   			        match_id TEXT,
+   			        steam_id TEXT,
+   			        kills INTEGER,
+   			        assists INTEGER,
+   			        deaths INTEGER
+   			        )
+            ''')
+        await db.execute('''
+                    CREATE TABLE IF NOT EXISTS match (
+   			        match_id TEXT UNIQUE,
+   			        team1_score INTEGER,
+   			        team2_score INTEGER
+   			        );
+            ''')
+        await db.disconnect()
         # TODO: Custom state for waiting for pug or if a pug is already playing
         await self.change_presence(status=discord.Status.online,
                                    activity=discord.Activity(type=discord.ActivityType.competing,
                                                              name='CSGO Pugs'))
-        self.dev = self.user.id == __dev__
         self.logger.debug(f'Dev = {self.dev}')
 
         await self.web_server.http_start()
         self.logger.info(f'{self.user} connected.')
-
+    
     async def load(self, extension: str):
         self.load_extension(f'cogs.{extension}')
 

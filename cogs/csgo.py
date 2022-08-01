@@ -59,11 +59,26 @@ class CSGO(commands.Cog):
         config = json.load(config_file)
         config_file.close()
         self.bot.loadConfig(config)
-
+    
     @commands.command(hidden=True)
     async def test(self, ctx: commands.Context, *args):
         self.logger.debug(f'{ctx.author}: {ctx.prefix}{ctx.invoked_with} {ctx.args[2:]}')
         print(f'test')
+
+    @commands.command(aliases=['stat', 'kills', 's'],
+                      help = 'Display relevant numbers related to the performance of a player',
+                      brief = 'Display player stats')
+    @commands.cooldown(1, 30, commands.BucketType.user)
+    @commands.check(checks.linked_accounts)
+    async def stats(self, ctx:commands.Context, *args):
+        print("stats")
+    
+    @stats.error
+    async def stats_error(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandError):
+            await ctx.send(str(error))
+            self.logger.warning(str(error))
+        self.logger.exception(f'{ctx.command} caused an exception')
 
     @commands.command(aliases=['10man', 'setup'],
                       help='This command takes the users in a voice channel and selects two random '

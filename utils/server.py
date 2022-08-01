@@ -7,6 +7,7 @@ import traceback
 import uuid
 import valve.rcon
 
+from databases import Database
 from discord.ext import tasks
 from aiohttp import web
 from json import JSONDecodeError
@@ -92,7 +93,7 @@ class WebServer:
         # or "Authorization"
         elif request.method == 'POST':
             try:
-                datahost_event = await request.json()
+                dathost_event = await request.json()
             except JSONDecodeError:
                 self.logger.warning(f'{request.remote} sent a invalid json POST ')
                 return WebServer._http_error_handler('json-body')
@@ -103,21 +104,21 @@ class WebServer:
             for csgo_server in self.csgo_servers:
                 #IMPORTANT ONLY ALLOW POST FROM TRUSTED SOURCE. ID should match servers match_id
                 print(request.remote)
-                if datahost_event['id'] == csgo_server.match_id:
+                if dathost_event['id'] == csgo_server.match_id:
                     server = csgo_server
                     break
             
             print(request.remote)
             print(self.bot.bot_IP)
             if server is not None and request.remote == self.bot.bot_IP:
-                self.logger.debug(f'ServerID={server.id} ({request.remote})=\n {pprint.pformat(datahost_event)}')
+                self.logger.debug(f'ServerID={server.id} ({request.remote})=\n {pprint.pformat(dathost_event)}')
                 print(request.path)
                 if request.path == '/match_end':
                     
                     await server.score_message.edit(content='Game Over')
 
                     score_embed: discord.Embed = server.score_message.embeds[0]
-                    score_embed.set_footer(text= f'🟥 Ended : {datahost_event["cancel_reason"]}')
+                    score_embed.set_footer(text= f'🟥 Ended : {dathost_event["cancel_reason"]}')
                     await server.score_message.edit(embed=score_embed)
 
                     if os.path.exists(f'./{server.json_id}.json'):
@@ -125,6 +126,28 @@ class WebServer:
                         self.logger.debug(f'Deleted {server.json_id}.json')
                     else:
                         self.logger.error(f'Could not delete {server.json_id}.json, file does not exist')
+                    print(dathost_event['cancel_reason'])
+                    if dathost_event['cancel_reason'] == "string":
+                        # DB CALLS
+                        db = Database('sqlite:///main.sqlite')
+                        await db.connect()
+                        player_stats: List = dathost_event['player_stats']
+                        #insert match id into all player_stats
+                        player_stats = [dict(item, **{'match_id':server.match_id}) for item in player_stats]
+                        # Insert player stats into the player_match_stats table
+                        await db.execute_many(''' 
+                                INSERT INTO player_match_stats (match_id, steam_id, kills, assists, deaths)
+                                VALUES(:match_id, :steam_id, :kills, :assists, :deaths)
+                        ''', values = player_stats)
+                        
+                        #insert the match stats into then match table
+                        await db.execute('''
+                            INSERT INTO match (match_id, team1_score , team2_score)
+                            VALUES(:match_id, :team1_score, :team2_score);
+                            ''', {"match_id": server.match_id, "team1_score": dathost_event['team1_stats']['score'], "team2_score": dathost_event['team2_stats']['score']})
+                        
+                        await db.disconnect()
+                        self.logger.debug(f'Inserted match stats with id {server.match_id} into DB')
 
                     if self.bot.cogs['CSGO'].pug.enabled:
                         for player in server.players:
@@ -137,14 +160,16 @@ class WebServer:
                     await server.channels[2].delete(reason='Game Over')
                     server.make_available()
                     self.csgo_servers.remove(server)
+                  
 
                 elif request.path == '/round_end':
                     server.update_team_scores(
-                        [datahost_event['team1_stats']['score'], datahost_event['team2_stats']['score']])
-                    score_embed = discord.Embed()
-                    score_embed.add_field(name=f'{datahost_event["params"]["team1_score"]}',
+                        [dathost_event['team1_stats']['score'], dathost_event['team2_stats']['score']])
+                    score_embed: discord.Embed = server.score_message.embeds[0]
+
+                    score_embed.add_field(name=f'{dathost_event["params"]["team1_score"]}',
                                           value=f'{server.team_names[0]}', inline=True)
-                    score_embed.add_field(name=f'{datahost_event["params"]["team2_score"]}',
+                    score_embed.add_field(name=f'{dathost_event["params"]["team2_score"]}',
                                           value=f'{server.team_names[1]}', inline=True)
                     gotv = server.get_gotv()
                     if gotv is None:
@@ -158,10 +183,10 @@ class WebServer:
                     score_embed.set_footer(text="🟢 Live")
                     await server.score_message.edit(embed=score_embed)
 
-                if datahost_event['event'] == 'series_end' or datahost_event['event'] == 'series_cancel' or datahost_event['event'] == 'map_end':
-                    if datahost_event['event'] == 'series_end':
+                if dathost_event['event'] == 'series_end' or dathost_event['event'] == 'series_cancel' or dathost_event['event'] == 'map_end':
+                    if dathost_event['event'] == 'series_end':
                         await server.score_message.edit(content='Game Over')
-                    elif datahost_event['event'] == 'series_cancel':
+                    elif dathost_event['event'] == 'series_cancel':
                         self.logger.info(f'ServerID={server.id} | Admin Cancelled Match')
                         await server.score_message.edit(content='Game Cancelled by Admin')
                         # Temporary fix, Get5 breaks on a series cancel unless map changes
@@ -172,11 +197,11 @@ class WebServer:
                     score_embed.set_footer(text='🟥 Ended')
                     await server.score_message.edit(embed=score_embed)
 
-                    if os.path.exists(f'./{datahost_event["matchid"]}.json'):
-                        os.remove(f'./{datahost_event["matchid"]}.json')
-                        self.logger.debug(f'Deleted {datahost_event["matchid"]}.json')
+                    if os.path.exists(f'./{dathost_event["matchid"]}.json'):
+                        os.remove(f'./{dathost_event["matchid"]}.json')
+                        self.logger.debug(f'Deleted {dathost_event["matchid"]}.json')
                     else:
-                        self.logger.error(f'Could not delete {datahost_event["matchid"]}.json, file does not exist')
+                        self.logger.error(f'Could not delete {dathost_event["matchid"]}.json, file does not exist')
 
                     if self.bot.cogs['CSGO'].pug.enabled:
                         for player in server.players:

@@ -97,7 +97,7 @@ class CSGOServer:
 
     def update_team_scores(self, team_scores: List[int]):
         self.team_scores = team_scores
-        self.logger.debug(f'ServerID:{self.id} got team_names: {team_scores}')
+        self.logger.debug(f'ServerID:{self.id} got team_scores: {team_scores}')
 
     def make_available(self):
         self.available: bool = True

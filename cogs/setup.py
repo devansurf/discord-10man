@@ -40,6 +40,14 @@ class Setup(commands.Cog):
                         ''', {"discord_id": str(ctx.author.id), "steam_id": str(steamID.as_steam2_zero)})
         embed = discord.Embed(description=f'Connected {ctx.author.mention} \n `{steamID.as_steam2}`', color=0x00FF00)
         await ctx.send(embed=embed)
+        #Give discord role
+        user = ctx.author
+        role = discord.utils.get(ctx.message.guild.roles,name=self.bot.linked_role)
+        if role is None:
+            raise commands.UserInputError(message="Role name does not match any of the server's roles.")
+        elif role not in user.roles:
+            await user.add_roles(role)
+
         self.logger.info(f'{ctx.author} connected to {steamID.as_steam2}')
 
     @link.error

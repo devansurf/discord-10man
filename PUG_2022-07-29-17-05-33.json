@@ -1,0 +1,31 @@
+{
+    "json_id": "PUG_2022-07-29-17-05-33",
+    "num_maps": 1,
+    "maplist": [
+        "de_inferno"
+    ],
+    "skip_veto": true,
+    "veto_first": "team1",
+    "side_type": "always_knife",
+    "players_per_team": 1,
+    "min_players_to_ready": 1,
+    "spectators": {
+        "players": {}
+    },
+    "team1": {
+        "name": "team_dante",
+        "tag": "team1",
+        "flag": "US",
+        "players": {
+            "STEAM_0:0:189249506": "dante"
+        }
+    },
+    "team2": {
+        "name": "team_DSurf",
+        "tag": "team2",
+        "flag": "PR",
+        "players": {
+            "STEAM_0:1:115765261": "DSurf"
+        }
+    }
+}
