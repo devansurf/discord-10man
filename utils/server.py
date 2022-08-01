@@ -59,6 +59,13 @@ class WebServer:
 
     #     self.logger.info('Completed fetching info from all csgo servers')
 
+    #def extract_cancel_reason(self, cancel_reason):
+        #'cancel_reason': 'MISSING_PLAYERS:STEAM_1:1:524686566'
+
+    async def get_team_number(self, team):
+        #extract number from team (team1, team2)
+        return int(team[-1])
+
     async def _handler(self, request: web.Request) -> Union[web.Response, web.FileResponse]:
         """
         Super simple HTTP handler.
@@ -126,18 +133,35 @@ class WebServer:
                         self.logger.debug(f'Deleted {server.json_id}.json')
                     else:
                         self.logger.error(f'Could not delete {server.json_id}.json, file does not exist')
-                    print(dathost_event['cancel_reason'])
-                    if dathost_event['cancel_reason'] == "string":
+                    cancel_reason: str = dathost_event['cancel_reason']
+                    if cancel_reason == "string":
                         # DB CALLS
                         db = Database('sqlite:///main.sqlite')
                         await db.connect()
                         player_stats: List = dathost_event['player_stats']
                         #insert match id into all player_stats
                         player_stats = [dict(item, **{'match_id':server.match_id}) for item in player_stats]
+
+                        #Add team number to player_stats
+                        player_stats_copy = []
+                        for steam_id in dathost_event['team1_steam_ids']:
+                            for player_stat in player_stats:
+                                ps = player_stat.copy()
+                                if steam_id == player_stat['steam_id']:
+                                    ps['team'] = 1
+                                    player_stats_copy.append(ps)
+                        for steam_id in dathost_event['team2_steam_ids']:
+                            for player_stat in player_stats:
+                                ps = player_stat.copy()
+                                if steam_id == player_stat['steam_id']:
+                                    ps['team'] = 2
+                                    player_stats_copy.append(ps)
+
+                        player_stats = player_stats_copy
                         # Insert player stats into the player_match_stats table
-                        await db.execute_many(''' 
-                                INSERT INTO player_match_stats (match_id, steam_id, kills, assists, deaths)
-                                VALUES(:match_id, :steam_id, :kills, :assists, :deaths)
+                        await db.execute_many('''
+                                INSERT INTO player_match_stats (match_id, steam_id, team, kills, assists, deaths)
+                                VALUES(:match_id, :steam_id, :team, :kills, :assists, :deaths)
                         ''', values = player_stats)
                         
                         #insert the match stats into then match table
@@ -148,7 +172,7 @@ class WebServer:
                         
                         await db.disconnect()
                         self.logger.debug(f'Inserted match stats with id {server.match_id} into DB')
-
+                    #elif cancel_reason == 
                     if self.bot.cogs['CSGO'].pug.enabled:
                         for player in server.players:
                             try:

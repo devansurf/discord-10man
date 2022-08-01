@@ -99,6 +99,7 @@ class Discord_10man(commands.Bot):
                     CREATE TABLE IF NOT EXISTS player_match_stats(
    			        match_id TEXT,
    			        steam_id TEXT,
+                    team INTEGER,
    			        kills INTEGER,
    			        assists INTEGER,
    			        deaths INTEGER
@@ -108,7 +109,8 @@ class Discord_10man(commands.Bot):
                     CREATE TABLE IF NOT EXISTS match (
    			        match_id TEXT UNIQUE,
    			        team1_score INTEGER,
-   			        team2_score INTEGER
+   			        team2_score INTEGER,
+                    date DATE
    			        );
             ''')
         await db.disconnect()
