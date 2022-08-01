@@ -191,9 +191,9 @@ class WebServer:
                         [dathost_event['team1_stats']['score'], dathost_event['team2_stats']['score']])
                     score_embed: discord.Embed = server.score_message.embeds[0]
 
-                    score_embed.add_field(name=f'{dathost_event["params"]["team1_score"]}',
+                    score_embed.add_field(name=f'{dathost_event["team1_stats"]["score"]}',
                                           value=f'{server.team_names[0]}', inline=True)
-                    score_embed.add_field(name=f'{dathost_event["params"]["team2_score"]}',
+                    score_embed.add_field(name=f'{dathost_event["team2_stats"]["score"]}',
                                           value=f'{server.team_names[1]}', inline=True)
                     gotv = server.get_gotv()
                     if gotv is None:
