@@ -59,9 +59,11 @@ class WebServer:
 
     #     self.logger.info('Completed fetching info from all csgo servers')
 
-    def extract_cancel_reason(self, cancel_reason):
-    #   'cancel_reason': 'MISSING_PLAYERS:STEAM_1:1:524686566'
-        print('const')
+    def extract_missing_players(self, cancel_reason):
+        cancel_reason = cancel_reason.replace('MISSING_PLAYERS:', '')
+        cancel_reason = cancel_reason.split(",")
+        print(cancel_reason)
+        return(cancel_reason)
     async def get_team_number(self, team):
         #extract number from team (team1, team2)
         return int(team[-1])
